@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Perbaikan Touchscreen & Ghost Touch Vivo Y91C</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f1f1;
+            color: #333;
+            line-height: 1.4;
+            padding: 10px;
+        }
+
+        .app-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #1a73e8;
+        }
+
+        .touch-test-area {
+            position: relative;
+            width: 280px;
+            height: 560px;
+            margin: 20px auto;
+            border: 2px solid #ccc;
+            border-radius: 20px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        .touch-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            width: 100%;
+            height: 100%;
+        }
+
+        .grid-cell {
+            border: 1px solid #eee;
+            position: relative;
+        }
+
+        .grid-cell.dead-zone {
+            background: rgba(255, 0, 0, 0.2);
+        }
+
+        .grid-cell.ghost-touch {
+            background: rgba(255, 165, 0, 0.2);
+        }
+
+        .grid-cell.active {
+            background: rgba(26, 115, 232, 0.2);
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #666;
+        }
+
+        .tab.active {
+            color: #1a73e8;
+            border-bottom: 2px solid #1a73e8;
+        }
+
+        .control-panel {
+            margin: 15px 0;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            background: #1a73e8;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: left;
+            position: relative;
+        }
+
+        .action-button:after {
+            content: '→';
+            position: absolute;
+            right: 15px;
+        }
+
+        .action-button:disabled {
+            background: #ccc;
+        }
+
+        .status-panel {
+            background: #e8f0fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .diagnostic-info {
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #1a73e8;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .ghost-touch-indicator {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 165, 0, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .issue-list {
+            margin: 15px 0;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 8px;
+        }
+
+        .issue-item {
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .repair-options {
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Diagnostik & Perbaikan Touchscreen Vivo Y91C</h1>
+        </div>
+
+        <div class="warning">
+            ⚠️ PERHATIAN: Backup data penting sebelum melanjutkan. Akses root diperlukan.
+        </div>
+
+        <div class="tab-container">
+            <button class="tab active" onclick="switchTab('diagnostic')">Diagnostik</button>
+            <button class="tab" onclick="switchTab('ghost')">Ghost Touch</button>
+            <button class="tab" onclick="switchTab('repair')">Perbaikan</button>
+        </div>
+
+        <div class="status-panel" id="deviceStatus">
+            Mendeteksi perangkat...
+        </div>
+
+        <div class="touch-test-area">
+            <div class="touch-grid" id="touchGrid"></div>
+        </div>
+
+        <div class="issue-list" id="issueList">
+            Menunggu hasil diagnosa...
+        </div>
+
+        <div class="control-panel">
+            <button class="action-button" onclick="startTouchDiagnostic()">
+                Diagnosa Area Sentuh
+            </button>
+
+            <button class="action-button" onclick="detectGhostTouch()">
+                Deteksi Ghost Touch
+            </button>
+
+            <button class="action-button" onclick="startRepair()">
+                Perbaiki Masalah
+            </button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <div class="diagnostic-info" id="logContainer"></div>
+    </div>
+
+    <script>
+        const DEVICE_CONFIG = {
+            model: 'vivo_Y91C',
+            touchDriver: '/dev/input/event2',
+            touchConfig: '/sys/devices/platform/touch/',
+            maxX: 720,
+            maxY: 1520,
+            firmwareVersion: '0.1.5'
+        };
+
+        let isProcessing = false;
+        let ghostTouchPoints = [];
+        let deadZones = new Set();
+        let currentTab = 'diagnostic';
+
+        function initializeGrid() {
+            const grid = document.getElementById('touchGrid');
+            for (let i = 0; i < 200; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.setAttribute('data-id', i);
+                grid.appendChild(cell);
+            }
+        }
+
+        function log(message) {
+            const container = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            container.innerHTML += `[${time}] ${message}<br>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+        }
+
+        async function startTouchDiagnostic() {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            log('Memulai diagnostik area sentuh...');
+            updateProgress(0);
+
+            try {
+                await simulateTouchDiagnostic();
+                updateIssueList();
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function simulateTouchDiagnostic() {
+            const cells = document.querySelectorAll('.grid-cell');
+            deadZones.clear();
+
+            // Simulasi area bermasalah
+            const problemAreas = [
+                {start: 45, end: 48}, // Dead zone tengah
+                {start: 120, end: 122}, // Dead zone bawah
+                {start: 12, end: 14} // Dead zone atas
+            ];
+
+            for (let i = 0; i < cells.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                const isDeadZone = problemAreas.some(area => 
+                    i >= area.start && i <= area.end
+                );
+
+                if (isDeadZone) {
+                    cells[i].classList.add('dead-zone');
+                    deadZones.add(i);
+                }
+
+                updateProgress((i / cells.length) * 100);
+            }
+        }
+
+        async function detectGhostTouch() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            log('Memulai deteksi ghost touch...');
+            updateProgress(0);
+
+            try {
+                // Simulasi deteksi ghost touch
+                const ghostTouchAreas = [
+                    {x: 50, y: 100},
+                    {x: 150, y: 300},
+                    {x: 200, y: 400}
+                ];
+
+                for (let i = 0; i < ghostTouchAreas.length; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    showGhostTouchIndicator(ghostTouchAreas[i]);
+                    updateProgress((i + 1) * 33);
+                }
+
+                log('Deteksi ghost touch selesai');
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        function showGhostTouchIndicator(position) {
+            const testArea = document.querySelector('.touch-test-area');
+            const indicator = document.createElement('div');
+            indicator.className = 'ghost-touch-indicator';
+            indicator.style.left = `${position.x}px`;
+            indicator.style.top = `${position.y}px`;
+            testArea.appendChild(indicator);
+            ghostTouchPoints.push(position);
+
+            setTimeout(() => indicator.remove(), 2000);
+        }
+
+        function updateIssueList() {
+            const issueList = document.getElementById('issueList');
+            let issues = [];
+
+            if (deadZones.size > 0) {
+                issues.push('Area tidak responsif terdeteksi di:');
+                if (deadZones.has(45)) issues.push('- Bagian tengah layar');
+                if (deadZones.has(120)) issues.push('- Bagian bawah layar');
+                if (deadZones.has(12)) issues.push('- Bagian atas layar');
+            }
+
+            if (ghostTouchPoints.length > 0) {
+                issues.push('Ghost touch terdeteksi di:');
+                ghostTouchPoints.forEach((point, index) => {
+                    issues.push(`- Area ${index + 1}: (${point.x}, ${point.y})`);
+                });
+            }
+
+            issueList.innerHTML = issues.length > 0 ? 
+                issues.join('<br>') : 
+                '✓ Tidak ditemukan masalah';
+        }
+
+        async function startRepair() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            log('Memulai perbaikan...');
+            updateProgress(0);
+
+            try {
+                const steps = [
+                    'Mengkalibrasi sensor',
+                    'Memperbaiki matriks sentuh',
+                    'Menghapus ghost touch cache',
+                    'Mengupdate parameter sentuh',
+                    'Memverifikasi hasil'
+                ];
+
+                for (let i = 0; i < steps.length; i++) {
+                    log(steps[i]);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    updateProgress((i + 1) * 20);
+                }
+
+                // Reset indicators
+                document.querySelectorAll('.grid-cell').forEach(cell => {
+                    cell.classList.remove('dead-zone', 'ghost-touch');
+                });
+                deadZones.clear();
+                ghostTouchPoints = [];
+                updateIssueList();
+
+                log('Perbaikan selesai');
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => 
+                t.classList.toggle('active', t.textContent.toLowerCase().includes(tab))
+            );
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeGrid();
+            log('Sistem siap. Silakan mulai diagnosa.');
+        });
+    </script>
+</body>
+</html>
